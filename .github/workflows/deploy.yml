@@ -40,7 +40,7 @@ jobs:
       - name: Check environment variables
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          API_URL: ${{ secrets.VITE_API_URL }}
+          APPS_SCRIPT_URL: ${{ secrets.VITE_APPS_SCRIPT_URL }}
         run: |
           if [ -z "$GOOGLE_CLIENT_ID" ]; then
             echo "ERROR: VITE_GOOGLE_CLIENT_ID is EMPTY"
@@ -49,18 +49,18 @@ jobs:
             echo "VITE_GOOGLE_CLIENT_ID is present"
           fi
 
-          if [ -z "$API_URL" ]; then
-            echo "ERROR: VITE_API_URL is EMPTY"
+          if [ -z "$APPS_SCRIPT_URL" ]; then
+            echo "ERROR: VITE_APPS_SCRIPT_URL is EMPTY"
             exit 1
           else
-            echo "VITE_API_URL is present"
+            echo "VITE_APPS_SCRIPT_URL is present"
           fi
 
       - name: Build
         run: npm run build
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_APPS_SCRIPT_URL: ${{ secrets.VITE_APPS_SCRIPT_URL }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
