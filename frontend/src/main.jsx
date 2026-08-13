@@ -146,6 +146,60 @@ function fileToBase64(file) {
   });
 }
 
+function LoadingScreen({ message = "Loading Photo Queue…" }) {
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#0b0f14",
+        color: "#ffffff",
+        fontFamily:
+          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      }}
+    >
+      <section
+        style={{
+          width: "min(420px, calc(100vw - 40px))",
+          textAlign: "center",
+          padding: "40px 28px",
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            margin: "0 auto 22px",
+            borderRadius: "50%",
+            border: "5px solid rgba(255,255,255,0.18)",
+            borderTopColor: "#ffffff",
+            animation: "photoQueueSpin 0.8s linear infinite",
+          }}
+        />
+        <div
+          style={{
+            fontSize: 13,
+            letterSpacing: "0.16em",
+            opacity: 0.65,
+            marginBottom: 8,
+          }}
+        >
+          PHOTO OPERATIONS
+        </div>
+        <h1 style={{ margin: 0, fontSize: 30 }}>Photo Queue</h1>
+        <p style={{ margin: "12px 0 0", opacity: 0.7 }}>{message}</p>
+
+        <style>{`
+          @keyframes photoQueueSpin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </section>
+    </main>
+  );
+}
+
 function App() {
   const initialSession = useMemo(() => readStoredSession(), []);
 
@@ -160,6 +214,7 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [uploadingKey, setUploadingKey] = useState("");
   const [notice, setNotice] = useState("");
+  const [booting, setBooting] = useState(true);
 
   const signInRef = useRef(null);
   const googleInitializedRef = useRef(false);
@@ -286,6 +341,12 @@ function App() {
   }, [idToken]);
 
   useEffect(() => {
+    if (!idToken && (!CLIENT_ID || !API_URL)) {
+      setBooting(false);
+    }
+  }, [idToken]);
+
+  useEffect(() => {
     if (idToken || !CLIENT_ID) return undefined;
 
     let cancelled = false;
@@ -328,6 +389,7 @@ function App() {
             setNotice("");
             setAuthError("");
             setError("");
+            setBooting(true);
             setUser(payload);
             setIdToken(credential);
           },
@@ -344,6 +406,7 @@ function App() {
           text: "signin_with",
           width: 280,
         });
+        setBooting(false);
       }
     };
 
@@ -400,6 +463,7 @@ function App() {
       if (queueRequestRef.current === controller) {
         queueRequestRef.current = null;
         setLoading(false);
+        setBooting(false);
       }
     }
   }
@@ -510,6 +574,18 @@ function App() {
     } finally {
       setUploadingKey("");
     }
+  }
+
+  if (booting) {
+    return (
+      <LoadingScreen
+        message={
+          idToken
+            ? "Verifying your session and loading the queue…"
+            : "Preparing secure sign-in…"
+        }
+      />
+    );
   }
 
   if (!idToken) {
