@@ -146,7 +146,9 @@ function fileToBase64(file) {
   });
 }
 
-function LoadingScreen({ message = "Loading Photo Queue…" }) {
+function LoadingScreen({
+  message = "Verifying your account and loading Photo Queue…",
+}) {
   return (
     <main
       style={{
@@ -177,6 +179,7 @@ function LoadingScreen({ message = "Loading Photo Queue…" }) {
             animation: "photoQueueSpin 0.8s linear infinite",
           }}
         />
+
         <div
           style={{
             fontSize: 13,
@@ -187,8 +190,9 @@ function LoadingScreen({ message = "Loading Photo Queue…" }) {
         >
           PHOTO OPERATIONS
         </div>
+
         <h1 style={{ margin: 0, fontSize: 30 }}>Photo Queue</h1>
-        <p style={{ margin: "12px 0 0", opacity: 0.7 }}>{message}</p>
+        <p style={{ margin: "12px 0 0", opacity: 0.72 }}>{message}</p>
 
         <style>{`
           @keyframes photoQueueSpin {
@@ -214,7 +218,7 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [uploadingKey, setUploadingKey] = useState("");
   const [notice, setNotice] = useState("");
-  const [booting, setBooting] = useState(true);
+  const [sessionVerified, setSessionVerified] = useState(false);
 
   const signInRef = useRef(null);
   const googleInitializedRef = useRef(false);
@@ -252,6 +256,7 @@ function App() {
     setUploadingKey("");
     setError("");
     setNotice("");
+    setSessionVerified(false);
     setAuthError(message);
 
     if (window.google?.accounts?.id) {
@@ -265,12 +270,12 @@ function App() {
 
   useEffect(() => () => clearNoticeTimer(), []);
 
-  // Soft logout: expire the frontend session locally without waiting for
-  // the next backend request to discover that the Google ID token expired.
+  // Soft logout: expire the frontend session locally instead of waiting
+  // for the backend to reject the next request.
   useEffect(() => {
     if (!idToken) return undefined;
 
-    const logoutExpiredSession = () => {
+    const logoutIfExpired = () => {
       if (isTokenExpired(idToken)) {
         clearSession("Your sign-in session expired. Please sign in again.");
         return true;
@@ -278,14 +283,14 @@ function App() {
       return false;
     };
 
-    if (logoutExpiredSession()) return undefined;
+    if (logoutIfExpired()) return undefined;
 
     const expiryTimer = window.setTimeout(() => {
       clearSession("Your sign-in session expired. Please sign in again.");
     }, getTokenExpiryDelay(idToken));
 
     const recheckSession = () => {
-      logoutExpiredSession();
+      logoutIfExpired();
     };
 
     window.addEventListener("focus", recheckSession);
@@ -302,6 +307,12 @@ function App() {
     if (idToken) {
       clearNoticeTimer();
       setNotice("");
+    }
+  }, [idToken]);
+
+  useEffect(() => {
+    if (idToken) {
+      setSessionVerified(false);
     }
   }, [idToken]);
 
@@ -338,12 +349,6 @@ function App() {
         window.removeEventListener(eventName, resetTimer);
       });
     };
-  }, [idToken]);
-
-  useEffect(() => {
-    if (!idToken && (!CLIENT_ID || !API_URL)) {
-      setBooting(false);
-    }
   }, [idToken]);
 
   useEffect(() => {
@@ -389,7 +394,7 @@ function App() {
             setNotice("");
             setAuthError("");
             setError("");
-            setBooting(true);
+            setSessionVerified(false);
             setUser(payload);
             setIdToken(credential);
           },
@@ -406,7 +411,6 @@ function App() {
           text: "signin_with",
           width: 280,
         });
-        setBooting(false);
       }
     };
 
@@ -444,6 +448,7 @@ function App() {
 
       setQueue(items);
       setSummary(nextSummary);
+      setSessionVerified(true);
 
       if (data.user) {
         setUser((current) => ({ ...current, ...data.user }));
@@ -463,7 +468,6 @@ function App() {
       if (queueRequestRef.current === controller) {
         queueRequestRef.current = null;
         setLoading(false);
-        setBooting(false);
       }
     }
   }
@@ -576,15 +580,9 @@ function App() {
     }
   }
 
-  if (booting) {
+  if (idToken && !sessionVerified) {
     return (
-      <LoadingScreen
-        message={
-          idToken
-            ? "Verifying your session and loading the queue…"
-            : "Preparing secure sign-in…"
-        }
-      />
+      <LoadingScreen message="Verifying your account and refreshing Photo Queue…" />
     );
   }
 
