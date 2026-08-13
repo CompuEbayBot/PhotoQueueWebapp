@@ -230,6 +230,7 @@ function App() {
   const [uploadingKey, setUploadingKey] = useState("");
   const [notice, setNotice] = useState("");
   const [sessionVerified, setSessionVerified] = useState(false);
+  const [gateMessage, setGateMessage] = useState("Verifying your account…");
 
   const signInRef = useRef(null);
   const googleInitializedRef = useRef(false);
@@ -268,6 +269,7 @@ function App() {
     setError("");
     setNotice("");
     setSessionVerified(false);
+    setGateMessage("Verifying your account…");
     setAuthError(message);
 
     if (window.google?.accounts?.id) {
@@ -406,6 +408,7 @@ function App() {
             setAuthError("");
             setError("");
             setSessionVerified(false);
+            setGateMessage("Verifying your account…");
             setUser(payload);
             setIdToken(credential);
           },
@@ -441,6 +444,8 @@ function App() {
 
     setLoading(true);
     setError("");
+    if (!sessionVerified)
+      setGateMessage("Verifying your account and loading the queue…");
 
     try {
       const data = await api(
@@ -457,6 +462,7 @@ function App() {
           ? data.summary
           : { total: items.length, byCategory: {} };
 
+      setGateMessage("Preparing Photo Queue…");
       setQueue(items);
       setSummary(nextSummary);
       setSessionVerified(true);
@@ -592,9 +598,7 @@ function App() {
   }
 
   if (idToken && !sessionVerified) {
-    return (
-      <LoadingScreen message="Verifying your account and refreshing Photo Queue…" />
-    );
+    return <LoadingScreen message={gateMessage} />;
   }
 
   if (!idToken) {
