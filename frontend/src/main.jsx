@@ -783,7 +783,10 @@ function App() {
                           multiple
                           disabled={Boolean(uploadingKey)}
                           onChange={(e) => {
-                            const files = e.target.files;
+                            // Copy the selected files BEFORE clearing the input.
+                            // Clearing the input can empty the live FileList object
+                            // in some browsers, which makes uploadPhotos receive zero files.
+                            const files = Array.from(e.target.files || []);
                             e.target.value = "";
                             uploadPhotos(item, files);
                           }}
