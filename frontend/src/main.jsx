@@ -13,6 +13,7 @@ const MAX_BATCH_BYTES = 24 * 1024 * 1024;
 const API_TIMEOUT_MS = 45_000;
 const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000;
 const SUCCESS_NOTICE_MS = 5_000;
+const TOKEN_EXPIRY_GRACE_MS = 5_000;
 
 function decodeJwtPayload(token) {
   try {
@@ -36,6 +37,14 @@ function isTokenExpired(token) {
   const payload = decodeJwtPayload(token);
   if (!payload?.exp) return true;
   return Date.now() >= Number(payload.exp) * 1000 - 30_000;
+}
+
+function getTokenExpiryDelay(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return 0;
+
+  const expiresAt = Number(payload.exp) * 1000;
+  return Math.max(0, expiresAt - Date.now() - TOKEN_EXPIRY_GRACE_MS);
 }
 
 function readStoredSession() {
@@ -201,10 +210,37 @@ function App() {
 
   useEffect(() => () => clearNoticeTimer(), []);
 
+  // Soft logout: expire the frontend session locally without waiting for
+  // the next backend request to discover that the Google ID token expired.
   useEffect(() => {
-    if (idToken && isTokenExpired(idToken)) {
+    if (!idToken) return undefined;
+
+    const logoutExpiredSession = () => {
+      if (isTokenExpired(idToken)) {
+        clearSession("Your sign-in session expired. Please sign in again.");
+        return true;
+      }
+      return false;
+    };
+
+    if (logoutExpiredSession()) return undefined;
+
+    const expiryTimer = window.setTimeout(() => {
       clearSession("Your sign-in session expired. Please sign in again.");
-    }
+    }, getTokenExpiryDelay(idToken));
+
+    const recheckSession = () => {
+      logoutExpiredSession();
+    };
+
+    window.addEventListener("focus", recheckSession);
+    document.addEventListener("visibilitychange", recheckSession);
+
+    return () => {
+      window.clearTimeout(expiryTimer);
+      window.removeEventListener("focus", recheckSession);
+      document.removeEventListener("visibilitychange", recheckSession);
+    };
   }, [idToken]);
 
   useEffect(() => {
@@ -353,7 +389,9 @@ function App() {
       if (controller.signal.aborted) return;
 
       const message = friendlyApiError(err.message);
-      if (/not authorized|session expired|token|sign-in/i.test(message)) {
+      if (
+        /not authorized|session expired|token|sign-in|credential/i.test(message)
+      ) {
         clearSession(message);
       } else {
         setError(message);
@@ -462,7 +500,9 @@ function App() {
       await loadQueue(idToken);
     } catch (err) {
       const message = friendlyApiError(err.message);
-      if (/not authorized|session expired|token|sign-in/i.test(message)) {
+      if (
+        /not authorized|session expired|token|sign-in|credential/i.test(message)
+      ) {
         clearSession(message);
       } else {
         setError(message);
