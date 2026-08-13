@@ -146,59 +146,70 @@ function fileToBase64(file) {
   });
 }
 
+function BrandIcon({ size = 48 }) {
+  return (
+    <div
+      className="brand-icon"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 64 64" role="img">
+        <defs>
+          <linearGradient id="linkeetLens" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#7dd3fc" />
+            <stop offset="55%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#f472b6" />
+          </linearGradient>
+        </defs>
+        <rect
+          x="8"
+          y="14"
+          width="48"
+          height="38"
+          rx="12"
+          fill="none"
+          stroke="url(#linkeetLens)"
+          strokeWidth="4"
+        />
+        <path
+          d="M20 14l4-6h16l4 6"
+          fill="none"
+          stroke="url(#linkeetLens)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="32"
+          cy="33"
+          r="10"
+          fill="none"
+          stroke="url(#linkeetLens)"
+          strokeWidth="4"
+        />
+        <circle cx="32" cy="33" r="3.5" fill="url(#linkeetLens)" />
+        <circle cx="48" cy="23" r="2.5" fill="#7dd3fc" />
+      </svg>
+    </div>
+  );
+}
+
 function LoadingScreen({
   message = "Verifying your account and loading Photo Queue…",
 }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        background: "#0b0f14",
-        color: "#ffffff",
-        fontFamily:
-          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
-    >
-      <section
-        style={{
-          width: "min(420px, calc(100vw - 40px))",
-          textAlign: "center",
-          padding: "40px 28px",
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            margin: "0 auto 22px",
-            borderRadius: "50%",
-            border: "5px solid rgba(255,255,255,0.18)",
-            borderTopColor: "#ffffff",
-            animation: "photoQueueSpin 0.8s linear infinite",
-          }}
-        />
-
-        <div
-          style={{
-            fontSize: 13,
-            letterSpacing: "0.16em",
-            opacity: 0.65,
-            marginBottom: 8,
-          }}
-        >
-          PHOTO OPERATIONS
+    <main className="loading-screen">
+      <section className="loading-card">
+        <div className="loading-brand">
+          <BrandIcon size={56} />
+          <div>
+            <p className="eyebrow">LINKEET · PHOTO OPERATIONS</p>
+            <h1>Linkeet Photo Queue</h1>
+          </div>
         </div>
 
-        <h1 style={{ margin: 0, fontSize: 30 }}>Photo Queue</h1>
-        <p style={{ margin: "12px 0 0", opacity: 0.72 }}>{message}</p>
-
-        <style>{`
-          @keyframes photoQueueSpin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+        <div className="loader-ring" aria-hidden="true" />
+        <p className="loading-message">{message}</p>
       </section>
     </main>
   );
@@ -590,8 +601,8 @@ function App() {
     return (
       <main className="login-shell">
         <section className="login-card">
-          <div className="brand-mark">PQ</div>
-          <h1>Photo Queue</h1>
+          <BrandIcon size={64} />
+          <h1>Linkeet Photo Queue</h1>
           <p>
             Sign in with an approved Google account to view and upload product
             photos.
@@ -617,8 +628,13 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">PHOTO OPERATIONS</p>
-          <h1>Photo Queue</h1>
+          <div className="topbar-brand">
+            <BrandIcon size={46} />
+            <div>
+              <p className="eyebrow">LINKEET · PHOTO OPERATIONS</p>
+              <h1>Linkeet Photo Queue</h1>
+            </div>
+          </div>
         </div>
 
         <div className="account">
