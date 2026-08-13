@@ -11,6 +11,7 @@ const MAX_FILES_PER_UPLOAD = 12;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_BATCH_BYTES = 24 * 1024 * 1024;
 const API_TIMEOUT_MS = 45_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
 const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000;
 const SUCCESS_NOTICE_MS = 5_000;
 const TOKEN_EXPIRY_GRACE_MS = 5_000;
@@ -70,12 +71,17 @@ function friendlyApiError(message) {
   return text;
 }
 
-async function api(action, idToken, payload = {}, { signal } = {}) {
+async function api(
+  action,
+  idToken,
+  payload = {},
+  { signal, timeoutMs = API_TIMEOUT_MS } = {},
+) {
   if (!API_URL) throw new Error("Missing VITE_APPS_SCRIPT_URL");
   if (!idToken) throw new Error("Missing Google ID token.");
 
   const timeoutController = new AbortController();
-  const timeout = setTimeout(() => timeoutController.abort(), API_TIMEOUT_MS);
+  const timeout = setTimeout(() => timeoutController.abort(), timeoutMs);
 
   const abortFromCaller = () => timeoutController.abort();
   if (signal) {
@@ -554,10 +560,17 @@ function App() {
 
     try {
       const images = await Promise.all(chosen.map(fileToBase64));
-      const result = await api("uploadPhotos", idToken, {
-        rowKey: item.rowKey,
-        images,
-      });
+      const result = await api(
+        "uploadPhotos",
+        idToken,
+        {
+          rowKey: item.rowKey,
+          images,
+        },
+        {
+          timeoutMs: UPLOAD_TIMEOUT_MS,
+        },
+      );
 
       showNotice(
         `Uploaded ${result.uploadedCount} photo${result.uploadedCount === 1 ? "" : "s"} for ${item.customCode || item.model}.`,
@@ -582,7 +595,9 @@ function App() {
         };
       });
 
-      await loadQueue(idToken);
+      // The backend already marked the row complete. Keep the optimistic
+      // UI update and let the user refresh when needed instead of making a
+      // second network request immediately after a potentially large upload.
     } catch (err) {
       const message = friendlyApiError(err.message);
       if (
